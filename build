@@ -1,0 +1,6 @@
+import:
+	A 		https://github.com/ar-visions/A 		main
+	llama.cpp https://github.com/ggml-org/llama.cpp master
+        -DLLAMA_STATIC=OFF
+        -DBUILD_SHARED_LIBS=ON
+		-lllama -lggml -lggml-cpu -lggml-base
