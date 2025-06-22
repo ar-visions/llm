@@ -7,7 +7,6 @@
     i_override(X,Y, method, dealloc)
 declare_class(mdl)
 
-// each object could be string message or a path to a file (source, or resource)
 #define ctx_schema(X,Y,...) \
     i_prop    (X,Y, intern, struct llama_context*, ictx) \
     i_prop    (X,Y, intern, struct llama_sampler*, ismpl) \
