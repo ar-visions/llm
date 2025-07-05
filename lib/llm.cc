@@ -2,35 +2,35 @@
 #include <import>
 
 
-static void mdl_logger(enum ggml_log_level level, const char * text, void * user_data) {
+static void llm_logger(enum ggml_log_level level, const char * text, void * user_data) {
     print("llama.cpp: %s", text);
 }
 
 
-void mdl_init(mdl m) {
-    path mdl_path = f(path, "%s/.cache/llama.cpp/%o", getenv("HOME"), m->uri);
-    verify(exists(mdl_path), "mdl not found: %o", mdl_path);
+void llm_init(llm m) {
+    path llm_path = f(path, "%s/.cache/llama.cpp/%o", getenv("HOME"), m->uri);
+    verify(exists(llm_path), "llm not found: %o", llm_path);
     llama_backend_init();
 
-    struct llama_model_params mdl_params = llama_model_default_params();
-    mdl_params.n_gpu_layers = 0;
-    mdl_params.use_mmap     = true;
-    mdl_params.use_mlock    = true;
+    struct llama_model_params llm_params = llama_model_default_params();
+    llm_params.n_gpu_layers = 0;
+    llm_params.use_mmap     = true;
+    llm_params.use_mlock    = true;
 
-    m->imdl = llama_model_load_from_file(mdl_path->chars, mdl_params);
-    verify(m->imdl, "failed to load mdl");
+    m->imdl = llama_model_load_from_file(llm_path->chars, llm_params);
+    verify(m->imdl, "failed to load llm");
     m->ivocab = (struct llama_vocab *)llama_model_get_vocab(m->imdl);
 }
 
 
-none ctx_init(ctx a) {
+none conversation_init(conversation a) {
     const i32 n_ctx = 1024 * 16;
 
-    struct llama_context_params ctx_params = llama_context_default_params();
-    ctx_params.n_ctx   = n_ctx;
-    ctx_params.n_batch = n_ctx;
+    struct llama_context_params conversation_params = llama_context_default_params();
+    conversation_params.n_ctx   = n_ctx;
+    conversation_params.n_batch = n_ctx;
 
-    a->ictx = llama_init_from_model(a->model->imdl, ctx_params);
+    a->ictx = llama_init_from_model(a->model->imdl, conversation_params);
     verify(a->ictx, "failed to initialize context");
 
     a->ismpl = llama_sampler_chain_init(llama_sampler_chain_default_params());
@@ -55,7 +55,7 @@ static string convert_msg(object msg) {
     string     prompt    = null;
     path       file      = instanceof(msg, path);
     if (file) {
-        string raw = (string)read(file, typeid(string));
+        string raw = (string)read(file, typeid(string), null);
         array lines = split(raw, "\n");
         prompt = string(alloc, len(raw) * 4 + 1024);
         append(prompt, "\n\nfilename (source code annotated with line-identifier: code): ");
@@ -80,8 +80,8 @@ static string convert_msg(object msg) {
 }
 
 // query against context (this will not append to it; user case)
-string ctx_query(ctx a, object msg) {
-    mdl        m         = a->model;
+string conversation_query(conversation a, object msg) {
+    llm        m         = a->model;
     string     prompt    = convert_msg(msg);
     
     verify    (prompt, "type not handled: %s", isa(msg)->name);
@@ -139,8 +139,8 @@ string ctx_query(ctx a, object msg) {
 }
 
 // append to context; no processing response (system case)
-none ctx_append(ctx a, object msg) {
-    mdl    m      = a->model;
+none conversation_append(conversation a, object msg) {
+    llm    m      = a->model;
     string prompt = convert_msg(msg);
     verify(prompt, "append: invalid type: %s", isa(msg)->name);
 
@@ -180,16 +180,16 @@ none ctx_append(ctx a, object msg) {
 }
  
 
-void ctx_dealloc(ctx a) {
+void conversation_dealloc(conversation a) {
     llama_sampler_free(a->ismpl);
     llama_free(a->ictx);
 }
 
 
-void mdl_dealloc(mdl m) {
+void llm_dealloc(llm m) {
     llama_model_free(m->imdl);
-    llama_log_set(mdl_logger, null);
+    llama_log_set(llm_logger, null);
 }
 
-define_class(mdl, A)
-define_class(ctx, A)
+define_class(llm, A)
+define_class(conversation, A)
